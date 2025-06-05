@@ -10,9 +10,36 @@ from transformers import (
 )
 from google.cloud import storage
 import time
-
+import json
 import warnings
+
 warnings.filterwarnings("ignore")
+
+def validate_hf_dataset(path):
+    print(f"🔎 Validando dataset en: {path}")
+    
+    # Verifica que existan los 3 archivos requeridos
+    required_files = ["dataset_info.json", "state.json"]
+    for file in required_files:
+        if not os.path.exists(os.path.join(path, file)):
+            raise FileNotFoundError(f"❌ Falta {file} en {path}")
+
+    # Verifica JSON válido
+    with open(os.path.join(path, "dataset_info.json")) as f:
+        content = f.read()
+        if not content.strip():
+            raise ValueError("❌ dataset_info.json está vacío")
+        try:
+            json.loads(content)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"❌ dataset_info.json inválido: {e}")
+
+    # Verifica que exista al menos un archivo .arrow
+    arrow_files = [f for f in os.listdir(path) if f.endswith(".arrow")]
+    if not arrow_files:
+        raise FileNotFoundError("❌ No se encontró ningún archivo .arrow")
+
+    print("✅ Validación completada")
 
 def download_from_gcs(bucket_name, prefix, destination_dir):
     print(f"🔽 Descargando de gs://{bucket_name}/{prefix} a {destination_dir}")
@@ -48,6 +75,9 @@ def main():
     download_from_gcs(bucket_name, f"{gcs_prefix}/val", f"{local_path}/val")
 
     print("📚 Cargando datasets...")
+    validate_hf_dataset(f"{local_path}/train")
+    validate_hf_dataset(f"{local_path}/val")
+
     tokenized_train = load_from_disk(f"{local_path}/train")
     tokenized_val = load_from_disk(f"{local_path}/val")
 
