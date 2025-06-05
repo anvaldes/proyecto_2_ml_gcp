@@ -1,0 +1,77 @@
+{
+  "components": {
+    "comp-evaluation-step": {
+      "executorLabel": "exec-evaluation-step"
+    },
+    "comp-training-step": {
+      "executorLabel": "exec-training-step"
+    }
+  },
+  "deploymentSpec": {
+    "executors": {
+      "exec-evaluation-step": {
+        "container": {
+          "args": [
+            "--gcs_path=2025_06",
+            "--model_path=2025_06/outputs"
+          ],
+          "command": [
+            "python3",
+            "evaluate.py"
+          ],
+          "image": "us-central1-docker.pkg.dev/proyecto-1-461620/my-kfp-repo/train-distributed:latest"
+        }
+      },
+      "exec-training-step": {
+        "container": {
+          "args": [
+            "--gcs_path=2025_06",
+            "--output_dir=./results"
+          ],
+          "command": [
+            "accelerate",
+            "launch",
+            "train.py"
+          ],
+          "image": "us-central1-docker.pkg.dev/proyecto-1-461620/my-kfp-repo/train-distributed:latest"
+        }
+      }
+    }
+  },
+  "pipelineInfo": {
+    "name": "xgb-distributed-training-and-eval"
+  },
+  "root": {
+    "dag": {
+      "tasks": {
+        "evaluation-step": {
+          "cachingOptions": {
+            "enableCache": true
+          },
+          "componentRef": {
+            "name": "comp-evaluation-step"
+          },
+          "dependentTasks": [
+            "training-step"
+          ],
+          "taskInfo": {
+            "name": "evaluation-step"
+          }
+        },
+        "training-step": {
+          "cachingOptions": {
+            "enableCache": true
+          },
+          "componentRef": {
+            "name": "comp-training-step"
+          },
+          "taskInfo": {
+            "name": "training-step"
+          }
+        }
+      }
+    }
+  },
+  "schemaVersion": "2.1.0",
+  "sdkVersion": "kfp-2.6.0"
+}
